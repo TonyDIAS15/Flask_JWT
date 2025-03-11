@@ -15,7 +15,7 @@ jwt = JWTManager(app)
 # Utilisateurs fictifs pour l'exemple
 USERS = {
     "admin": {"password": "admin", "role": "admin"},
-    "user": {"password": "user", "role": "user"}
+    "test": {"password": "test", "role": "user"}
 }
 
 # Route pour afficher le formulaire HTML
@@ -40,7 +40,7 @@ def login():
     # Réponse avec le token stocké dans un cookie sécurisé
     response = make_response(jsonify({"msg": "Connexion réussie"}))
     response.set_cookie(
-        "access_token", 
+        "access_token_cookie", 
         access_token, 
         httponly=True, 
         secure=False,  # Utilise `secure=True` uniquement avec HTTPS
