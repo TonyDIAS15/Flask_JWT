@@ -15,7 +15,7 @@ jwt = JWTManager(app)
 # Utilisateurs fictifs pour l'exemple
 USERS = {
     "admin": {"password": "admin", "role": "admin"},
-    "user": {"password": "user", "role": "user"}
+    "test": {"password": "test", "role": "test"}
 }
 
 # ➡️ Nouvelle route pour afficher le formulaire
