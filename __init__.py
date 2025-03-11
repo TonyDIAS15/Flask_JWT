@@ -15,15 +15,15 @@ jwt = JWTManager(app)
 # Utilisateurs fictifs pour l'exemple
 USERS = {
     "admin": {"password": "admin", "role": "admin"},
-    "test": {"password": "test", "role": "test"}
+    "user": {"password": "user", "role": "user"}
 }
 
-# ➡️ Nouvelle route pour afficher le formulaire
+# Route pour afficher le formulaire HTML
 @app.route('/formulaire')
 def formulaire():
     return render_template('formulaire.html')
 
-# Route de connexion qui génère un token JWT dans un cookie sécurisé
+# Route de connexion qui génère un token JWT stocké dans un cookie sécurisé
 @app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
@@ -37,23 +37,41 @@ def login():
     # Création du token avec les rôles
     access_token = create_access_token(identity=username, additional_claims={"role": user["role"]})
 
-    # Réponse avec un cookie contenant le token JWT
+    # Réponse avec le token stocké dans un cookie sécurisé
     response = make_response(jsonify({"msg": "Connexion réussie"}))
     response.set_cookie(
         "access_token", 
         access_token, 
         httponly=True, 
-        secure=False,      # ⚠️ Utilise `secure=True` uniquement si HTTPS est activé
-        samesite='Strict'  
+        secure=False,  # Utilise `secure=True` uniquement avec HTTPS
+        samesite='Strict'
     )
     return response
 
-# Route protégée accessible via le cookie JWT
+# Middleware personnalisé pour vérifier les rôles
+def role_required(required_role):
+    def wrapper(fn):
+        @jwt_required(locations=["cookies"])
+        def decorator(*args, **kwargs):
+            claims = get_jwt()
+            if claims.get("role") != required_role:
+                return jsonify({"msg": "Accès refusé : permissions insuffisantes"}), 403
+            return fn(*args, **kwargs)
+        return decorator
+    return wrapper
+
+#  Route protégée accessible via le cookie JWT
 @app.route("/protected", methods=["GET"])
 @jwt_required(locations=["cookies"])
 def protected():
     current_user = get_jwt_identity()
     return jsonify(logged_in_as=current_user), 200
+
+# Route protégée accessible uniquement aux administrateurs
+@app.route("/admin", methods=["GET"])
+@role_required("admin")
+def admin():
+    return jsonify({"msg": "Bienvenue sur la page administrateur !"})
 
 if __name__ == "__main__":
     app.run(debug=True)
