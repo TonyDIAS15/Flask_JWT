@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Formulaire de connexion</title>
+</head>
+<body>
+    <h2>Connexion</h2>
+    <form method="POST" action="/login" id="loginForm">
+        <label for="username">Nom d'utilisateur :</label>
+        <input type="text" id="username" name="username" required><br><br>
+
+        <label for="password">Mot de passe :</label>
+        <input type="password" id="password" name="password" required><br><br>
+
+        <button type="submit">Se connecter</button>
+    </form>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Stockage du token dans un cookie sécurisé
+                document.cookie = `access_token=${data.access_token}; Path=/; Secure; HttpOnly; SameSite=Strict`;
+                alert("Connexion réussie !");
+            } else {
+                alert(data.msg || "Erreur lors de la connexion.");
+            }
+        });
+    </script>
+</body>
+</html>
