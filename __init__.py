@@ -18,8 +18,9 @@ USERS = {
     "user": {"password": "user", "role": "user"}
 }
 
-@app.route('/') 
-def hello_world():
+# ➡️ Nouvelle route pour afficher le formulaire
+@app.route('/formulaire')
+def formulaire():
     return render_template('formulaire.html')
 
 # Route de connexion qui génère un token JWT dans un cookie sécurisé
@@ -42,14 +43,14 @@ def login():
         "access_token", 
         access_token, 
         httponly=True, 
-        secure=True, 
-        samesite='Strict'
+        secure=False,      # ⚠️ Utilise `secure=True` uniquement si HTTPS est activé
+        samesite='Strict'  
     )
     return response
 
 # Route protégée accessible via le cookie JWT
 @app.route("/protected", methods=["GET"])
-@jwt_required()
+@jwt_required(locations=["cookies"])
 def protected():
     current_user = get_jwt_identity()
     return jsonify(logged_in_as=current_user), 200
