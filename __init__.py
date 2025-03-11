@@ -1,5 +1,4 @@
-from flask import Flask 
-from flask import render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, make_response
 from flask_jwt_extended import (
     create_access_token, get_jwt_identity,
     jwt_required, JWTManager, get_jwt
@@ -9,8 +8,8 @@ from datetime import timedelta
 app = Flask(__name__)
 
 # Configuration du module JWT
-app.config["JWT_SECRET_KEY"] = "Ma_clé_secrete"  # Ma clé privée
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)  # Expiration du token après 1h
+app.config["JWT_SECRET_KEY"] = "Ma_clé_secrete"
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 jwt = JWTManager(app)
 
 # Utilisateurs fictifs pour l'exemple
@@ -19,43 +18,36 @@ USERS = {
     "user": {"password": "user", "role": "user"}
 }
 
-@app.route('/')  # Test
+@app.route('/') 
 def hello_world():
-    return render_template('accueil.html')
+    return render_template('formulaire.html')
 
-# Route de connexion qui génère un token JWT avec les rôles
+# Route de connexion qui génère un token JWT dans un cookie sécurisé
 @app.route("/login", methods=["POST"])
 def login():
-    username = request.json.get("username", None)
-    password = request.json.get("password", None)
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
 
     user = USERS.get(username)
     if not user or user["password"] != password:
         return jsonify({"msg": "Mauvais utilisateur ou mot de passe"}), 401
 
-    # Ajout du rôle dans les "claims" du token
+    # Création du token avec les rôles
     access_token = create_access_token(identity=username, additional_claims={"role": user["role"]})
-    return jsonify(access_token=access_token)
 
-# Middleware personnalisé pour vérifier les rôles
-def role_required(required_role):
-    def wrapper(fn):
-        @jwt_required()
-        def decorator(*args, **kwargs):
-            claims = get_jwt()
-            if claims.get("role") != required_role:
-                return jsonify({"msg": "Accès refusé : vous n'avez pas les permissions nécessaires"}), 403
-            return fn(*args, **kwargs)
-        return decorator
-    return wrapper
+    # Réponse avec un cookie contenant le token JWT
+    response = make_response(jsonify({"msg": "Connexion réussie"}))
+    response.set_cookie(
+        "access_token", 
+        access_token, 
+        httponly=True, 
+        secure=True, 
+        samesite='Strict'
+    )
+    return response
 
-# Route protégée accessible uniquement aux administrateurs
-@app.route("/admin", methods=["GET"])
-@role_required("admin")
-def admin():
-    return jsonify({"msg": "Bienvenue sur la page administrateur !"})
-
-# Route protégée accessible à tous les utilisateurs authentifiés
+# Route protégée accessible via le cookie JWT
 @app.route("/protected", methods=["GET"])
 @jwt_required()
 def protected():
